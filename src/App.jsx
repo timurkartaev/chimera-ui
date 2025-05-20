@@ -3,8 +3,8 @@ import {
     QueryClientProvider,
     useQuery,
 } from '@tanstack/react-query'
-import {useState} from 'react';
-import {fetchOptions, fetchDataCollections, fetchEntityDetails} from './utils';
+import {useState, useEffect} from 'react';
+import {fetchOptions, fetchDataCollections, fetchEntityDetails, searchEntityObjects} from './utils';
 
 // Import the Select components
 import {
@@ -294,119 +294,119 @@ function ListEntities({ connectionId }) {
 }
 
 function ObjectsList() {
+    const [searchTerm, setSearchTerm] = useState('');
+    
+    // Use TanStack Query to fetch search results
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['searchObjects', searchTerm],
+        queryFn: () => searchEntityObjects(searchTerm),
+        // Only run the query if we have a search term
+        enabled: searchTerm.length > 0,
+        // Debounce to avoid excessive API calls
+        refetchOnWindowFocus: false,
+        staleTime: 30000, // 30 seconds
+    });
+    
+    // Get records from query results or empty array
+    const records = searchTerm.length > 0 ? (data?.response?.records || []) : [];
+    console.log(records)
+    
+    // Function to flatten objects to display in table
+    const flattenField = (key, value) => {
+        if (value === null || value === undefined) {
+            return { key, value: 'N/A', type: 'null' };
+        }
+        
+        if (typeof value === 'object' && !Array.isArray(value)) {
+            // Handle nested objects
+            const displayValue = value.name || 
+                                value.title || 
+                                (value.id !== undefined ? `ID: ${value.id}` : 
+                                JSON.stringify(value));
+            return { key, value: displayValue, type: 'object' };
+        }
+        
+        if (Array.isArray(value)) {
+            // Handle arrays
+            return { key, value: value.length ? value.join(', ') : 'Empty', type: 'array' };
+        }
+        
+        // Handle primitive values
+        return { key, value: String(value), type: typeof value };
+    };
+    
+    // Function to get all flattened fields from a record
+    const getFlattenedFields = (record) => {
+        const fields = record.fields;
+        const result = [];
+        
+        // Add basic fields
+        for (const [key, value] of Object.entries(fields)) {
+            // Skip duplicate keys like 'id' that appear both at top level and in nested objects
+            if (['user', 'person', 'organization'].includes(key)) continue;
+            
+            result.push(flattenField(key, value));
+        }
+        
+        return result;
+    };
+
     return (
         <div className="py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold mb-2">Objects</h2>
-            <div className="w-full max-w-xs mb-4 relative">
-                <Input placeholder="Deal XYZ" className="pl-8"/>
+            <div className="w-full max-w-md mb-4 relative">
+                <Input 
+                    placeholder="Search deals..." 
+                    className="pl-8"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
                 <div className="absolute left-2 top-2.5 text-gray-400">🔍</div>
             </div>
 
-            <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                    <thead>
-                    <tr className="bg-gray-200">
-                        <th className="border border-gray-300 px-2 py-1 text-left text-sm">id</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left text-sm">label</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left text-sm">dataType</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left text-sm">value</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">dealname</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Deal Name</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">string</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">ACME Corp Website Redesign</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">amount</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Amount</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">number</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">55000</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">dealstage</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Deal Stage</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">enumeration</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Presentation scheduled</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">pipeline</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Pipeline</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">enumeration</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Sales Pipeline</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">close_date</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Close Date</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">date</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">2025-06-15</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">create_date</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Create Date</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">datetime</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">2025-05-01T10:23:00</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">dealtype</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Deal Type</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">enumeration</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">New Business</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">hubspot_owner_id</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Deal Owner</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">string</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">jane.doe@company.com</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">custom_priority_level</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Priority Level</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">enumeration</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">High</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">custom_discount_applied</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Discount Applied</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">boolean</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">true</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">custom_use_case</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Use Case</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">string</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Website Overhaul + SEO Optimization
-                        </td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">custom_industry</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Industry</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">enumeration</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">E-commerce</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">custom_contract_duration</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Contract Duration (Months)</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">number</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">12</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">custom_product_interest</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Product Interest</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">enumeration</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Pro</td>
-                    </tr>
-                    <tr>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">custom_expected_revenue</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">Expected Revenue</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">number</td>
-                        <td className="border border-gray-300 px-2 py-1 text-sm">27000</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
+            {isLoading && searchTerm && (
+                <p className="text-gray-500">Loading results...</p>
+            )}
+            
+            {error && (
+                <p className="text-red-500">Error: {error.message}</p>
+            )}
+            
+            {!isLoading && !error && searchTerm && records.length === 0 && (
+                <p className="text-gray-500">No records found</p>
+            )}
+            
+            {!searchTerm && (
+                <p className="text-gray-500">Type to search for objects</p>
+            )}
+            
+            {records.length > 0 && (
+                <div className="overflow-x-auto w-full" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    {records.map(record => (
+                        <div key={record.id} className="mb-8">
+                            <h3 className="text-md font-medium mb-2">{record.name}</h3>
+                            <table className="w-full border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-200">
+                                        <th className="border border-gray-300 px-2 py-1 text-left text-sm w-1/4">Field</th>
+                                        <th className="border border-gray-300 px-2 py-1 text-left text-sm w-1/4">Value</th>
+                                        <th className="border border-gray-300 px-2 py-1 text-left text-sm w-1/4">Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {getFlattenedFields(record).map((field, index) => (
+                                        <tr key={index}>
+                                            <td className="border border-gray-300 px-2 py-1 text-sm">{field.key}</td>
+                                            <td className="border border-gray-300 px-2 py-1 text-sm">{field.value}</td>
+                                            <td className="border border-gray-300 px-2 py-1 text-sm">{field.type}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     )
 }

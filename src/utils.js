@@ -1,5 +1,5 @@
 // Define a common base URL for all API calls
-const BASE_URL = 'https://chimera-vercel.vercel.app';
+const BASE_URL = 'http://localhost:8000';
 
 const fetchOptions = async () => {
   const response = await fetch(`${BASE_URL}/list-connections`);
@@ -36,4 +36,18 @@ const fetchEntityDetails = async (connectionId, entityKey) => {
   return response.json();
 };
 
-export { fetchOptions, fetchDataCollections, fetchEntityDetails };
+const searchEntityObjects = async (query) => {
+  if (!query) {
+    return { records: [] }; // Return empty records if no query
+  }
+  
+  const url = `${BASE_URL}/run-action?q=${encodeURIComponent(query)}`;
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error('Failed to search objects');
+  }
+  return response.json();
+};
+
+export { fetchOptions, fetchDataCollections, fetchEntityDetails, searchEntityObjects };
