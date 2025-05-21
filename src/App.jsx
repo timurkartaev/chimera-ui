@@ -253,7 +253,7 @@ export default function App() {
                         />
                         <ListEntities connectionId={selectedConnectionId} />
                         <ObjectsList integrationKey={selectedIntegrationKey} />
-                        <Actions/>
+                        {/*<Actions/>*/}
                     </>
                 )}
             </div>
