@@ -2,9 +2,11 @@ import {
     QueryClient,
     QueryClientProvider,
     useQuery,
+    useMutation,
+    useQueryClient,
 } from '@tanstack/react-query'
 import {useState, useEffect} from 'react';
-import {fetchOptions, fetchDataCollections, fetchEntityDetails, searchEntityObjects} from './utils';
+import {fetchOptions, fetchIntegrations, archiveConnection, fetchDataCollections, fetchEntityDetails, searchEntityObjects} from './utils';
 
 // Import the Select components
 import {
@@ -39,19 +41,221 @@ function Button({children, className = "", variant = "default", onClick}) {
     );
 }
 
+// Simple component to display connectors
+function ConnectorsList() {
+  const queryClient = useQueryClient();
+  const [disconnecting, setDisconnecting] = useState(null);
+  
+  // Query to fetch integrations
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['integrations'],
+    queryFn: fetchIntegrations
+  });
+  
+  // Mutation to archive/disconnect a connection
+  const disconnectMutation = useMutation({
+    mutationFn: archiveConnection,
+    onMutate: (connectionId) => {
+      setDisconnecting(connectionId);
+    },
+    onSuccess: () => {
+      // Invalidate the query to refetch the data
+      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+    },
+    onError: (error) => {
+      console.error("Failed to disconnect:", error);
+      alert("Failed to disconnect: " + error.message);
+    },
+    onSettled: () => {
+      setDisconnecting(null);
+    }
+  });
+  
+  // Handle disconnect button click
+  const handleDisconnect = (connectionId) => {
+    if (confirm("Are you sure you want to disconnect this integration?")) {
+      disconnectMutation.mutate(connectionId);
+    }
+  };
+  
+  if (isLoading) return <p>Loading connectors...</p>;
+  if (error) return <p>Error loading connectors: {error.message}</p>;
+  
+  // Get integrations from the new response structure
+  const integrations = data?.response?.items || [];
+  
+  return (
+    <>
+      {integrations.map(integration => (
+        <div 
+          key={integration.id} 
+          className="p-5 border rounded-lg bg-white flex flex-col"
+        >
+          <div className="flex items-start justify-between mb-3">
+            {/* Integration header with logo and name */}
+            <div className="flex items-center gap-3">
+              <div className="size-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                {integration.logoUri ? (
+                  <img src={integration.logoUri} alt="" className="size-full object-cover" />
+                ) : (
+                  <span role="img" aria-label="plugin" className="text-gray-400">🔌</span>
+                )}
+              </div>
+              <div>
+                <h3 className="font-medium text-lg">{integration.name}</h3>
+                {/* Integration state indicator */}
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className={`size-2 rounded-full ${
+                    integration.state === 'READY' ? 'bg-green-500' : 'bg-yellow-500'
+                  }`}></span>
+                  <span className="text-xs text-gray-500">
+                    {integration.state}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Connection status or connect button */}
+            {integration.connection ? (
+              <div className="flex flex-col items-end">
+                <span className={`text-sm px-2 py-1 rounded-full ${
+                  integration.connection.state === 'READY' 
+                    ? 'bg-green-100 text-green-800' 
+                    : integration.connection.state === 'ERROR'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {integration.connection.state}
+                </span>
+                <span className="text-xs text-gray-500 mt-1">
+                  Last active: {new Date(integration.connection.lastActiveAt).toLocaleDateString()}
+                </span>
+                <Button 
+                  variant="destructive" 
+                  className="text-xs px-2 py-1 mt-2"
+                  onClick={() => handleDisconnect(integration.connection.id)}
+                  disabled={disconnecting === integration.connection.id}
+                >
+                  {disconnecting === integration.connection.id ? "Disconnecting..." : "Disconnect"}
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                onClick={() => window.open(`https://chimera-vercel.vercel.app/auth/${integration.key}/begin/`, '_blank')}
+                className="text-sm px-3 py-1.5"
+              >
+                Connect
+              </Button>
+            )}
+          </div>
+          
+          {/* Integration details section */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2 mt-2 text-sm">
+            <div>
+              <span className="text-gray-500">Auth Type:</span>{' '}
+              <span className="font-medium capitalize">{integration.authType || 'Unknown'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Version:</span>{' '}
+              <span className="font-medium">{integration.connectorVersion || 'N/A'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Data Collections:</span>{' '}
+              <span className="font-medium">{integration.dataCollectionsCount || 0}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Operations:</span>{' '}
+              <span className="font-medium">{integration.operationsCount || 0}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Events:</span>{' '}
+              <span className="font-medium">{integration.eventsCount || 0}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">ID:</span>{' '}
+              <span className="font-medium text-xs text-gray-600">{integration.id}</span>
+            </div>
+            {integration.connection && (
+              <div>
+                <span className="text-gray-500">Connection ID:</span>{' '}
+                <span className="font-medium text-xs text-gray-600">{integration.connection.id}</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Feature badges */}
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {integration.hasDocumentation && (
+              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs">Documentation</span>
+            )}
+            {integration.hasUdm && (
+              <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-xs">UDM</span>
+            )}
+            {integration.hasEvents && (
+              <span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full text-xs">Events</span>
+            )}
+            {integration.hasGlobalWebhooks && (
+              <span className="px-2 py-0.5 bg-pink-50 text-pink-700 rounded-full text-xs">Webhooks</span>
+            )}
+            {integration.connection && (
+              <span className="px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-xs">Connected</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
 const queryClient = new QueryClient() // check cache ttl
 
 export default function App() {
+    const [showInfoPage, setShowInfoPage] = useState(false);
     const [selectedConnectionId, setSelectedConnectionId] = useState('');
+    const [selectedIntegrationKey, setSelectedIntegrationKey] = useState('');
     
     return (
         <QueryClientProvider client={queryClient}>
             <div className="pl-8 pr-4 max-w-7xl w-full">
-                <InfoSelection onSelectConnection={setSelectedConnectionId} />
-                <Authorization/>
-                <ListEntities connectionId={selectedConnectionId} />
-                <ObjectsList/>
-                <Actions/>
+                {!showInfoPage ? (
+                    /* Connectors List Page */
+                    <div className="py-4">
+                        <h2 className="text-lg font-semibold mb-4">Available Connectors</h2>
+                        
+                        {/* List of connectors with status */}
+                        <div className="grid gap-4 mb-6">
+                            <ConnectorsList />
+                        </div>
+                        
+                        {/* Simple button to show info page */}
+                        <Button 
+                            onClick={() => setShowInfoPage(true)}
+                            className="mt-4"
+                        >
+                            Continue to Info Page
+                        </Button>
+                    </div>
+                ) : (
+                    /* Info Page with components */
+                    <>
+                        <div className="flex justify-between items-center py-4 border-b border-gray-200">
+                            <h2 className="text-lg font-semibold">Info Page</h2>
+                            <Button onClick={() => setShowInfoPage(false)}>
+                                Back to Connectors
+                            </Button>
+                        </div>
+                        
+                        <InfoSelection 
+                            onSelectConnection={(connectionId, integrationKey) => {
+                                setSelectedConnectionId(connectionId);
+                                setSelectedIntegrationKey(integrationKey);
+                            }} 
+                        />
+                        <ListEntities connectionId={selectedConnectionId} />
+                        <ObjectsList integrationKey={selectedIntegrationKey} />
+                        <Actions/>
+                    </>
+                )}
             </div>
         </QueryClientProvider>
     )
@@ -69,7 +273,15 @@ function InfoSelection({ onSelectConnection }) {
     const handleChange = (e) => {
         const value = e.target.value;
         setSelectedValue(value);
-        onSelectConnection(value);
+        
+        // Find selected connection to get both connectionId and integrationKey
+        const selectedConnection = data?.items?.find(item => item.id === value);
+        if (selectedConnection) {
+            // Pass both the connectionId and the integrationKey
+            onSelectConnection(value, selectedConnection.integration.key);
+        } else {
+            onSelectConnection('', '');
+        }
     };
 
     // Find the selected integration
@@ -83,7 +295,7 @@ function InfoSelection({ onSelectConnection }) {
             <h2 className="text-lg font-semibold mb-2">Info</h2>
             <div className="w-full max-w-xs mb-4">
                 <label htmlFor="options" className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                    Select an connection:
+                    Select a connection:
                 </label>
                 <select
                     id="options"
@@ -107,57 +319,158 @@ function InfoSelection({ onSelectConnection }) {
 }
 
 function IntegrationDetail({ selectedIntegration }) {
-    const integrationName = selectedIntegration?.integration?.name || '';
-    const logoUrl = selectedIntegration?.integration?.logoUri || '';
-    const dataCollectionsCount = selectedIntegration?.integration?.dataCollectionsCount || 0;
+    if (!selectedIntegration) {
+        return (
+            <div className="mt-6 p-5 border border-gray-200 rounded-md bg-white dark:bg-slate-800 shadow-sm">
+                <p className="text-gray-500 dark:text-gray-400">No connection selected. Please select a connection from the dropdown above.</p>
+            </div>
+        );
+    }
+    
+    const integration = selectedIntegration.integration;
+    const connection = selectedIntegration.connection;
+    
+    // Extract integration details
+    const integrationName = integration?.name || '';
+    const integrationKey = integration?.key || '';
+    const logoUrl = integration?.logoUri || '';
+    const dataCollectionsCount = integration?.dataCollectionsCount || 0;
+    const operationsCount = integration?.operationsCount || 0;
+    const eventsCount = integration?.eventsCount || 0;
+    const authType = integration?.authType || 'unknown';
+    const version = integration?.connectorVersion || 'N/A';
+    
+    // Format dates for better readability
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleString();
+    };
 
     return (
-        <div className="mt-6 p-5 border border-gray-200 rounded-md bg-white dark:bg-slate-800 max-w-sm shadow-sm">
-            <div className="flex items-start gap-5">
-                <div className="size-12 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-lg overflow-hidden shrink-0">
+        <div className="mt-6 p-6 border border-gray-200 rounded-md bg-white dark:bg-slate-800 shadow-md">
+            {/* Connection Header */}
+            <div className="flex items-start gap-5 mb-4">
+                <div className="size-14 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-lg overflow-hidden shrink-0">
                     {logoUrl ? (
                         <img src={logoUrl} alt="" className="size-full object-cover" />
                     ) : (
                         <span role="img" aria-label="plugin" className="text-gray-400">🔌</span>
                     )}
                 </div>
-                <div className="space-y-2">
-                    <div className="font-medium text-base">
-                        {integrationName ? `Integration: ${integrationName}` : "No integration selected"}
+                <div>
+                    <div className="font-semibold text-lg">
+                        {integrationName}
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {integrationName ? "Connected successfully" : "Please select an integration from the dropdown"}
-                    </p>
-                    {integrationName && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                            <span className="font-medium">Data Collections:</span> 
-                            <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                {dataCollectionsCount}
-                            </span>
-                        </p>
-                    )}
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            connection?.state === 'READY' 
+                                ? 'bg-green-100 text-green-800' 
+                                : connection?.state === 'ERROR'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-blue-100 text-blue-800'
+                        }`}>
+                            {connection ? connection.state : 'Selected'}
+                        </span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                            ID: {selectedIntegration.id.substring(0, 8)}...
+                        </span>
+                    </div>
                 </div>
             </div>
-        </div>
-    )
-}
-
-function Authorization() {
-    const [connected, setConnected] = useState(false);
-
-    return (
-        <div className="py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold mb-2">Authenticate</h2>
-            <div className="flex gap-2">
-                <Button
-                    className={`${connected ? "bg-green-600 hover:bg-green-700" : "bg-green-500 hover:bg-green-600"}`}
-                    onClick={() => setConnected(true)}
-                >
-                    Connect
-                </Button>
-                <Button variant="destructive" onClick={() => setConnected(false)}>
-                    Disconnect
-                </Button>
+            
+            {/* Integration Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 mt-3">
+                <div className="bg-gray-50 dark:bg-slate-700 p-4 rounded-md">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Integration Details</h3>
+                    <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-500 dark:text-gray-400">Key:</span>
+                            <span className="font-medium">{integrationKey}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-500 dark:text-gray-400">Auth Type:</span>
+                            <span className="font-medium capitalize">{authType}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-500 dark:text-gray-400">Version:</span>
+                            <span className="font-medium">{version}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-500 dark:text-gray-400">Data Collections:</span>
+                            <span className="font-medium">{dataCollectionsCount}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-500 dark:text-gray-400">Operations:</span>
+                            <span className="font-medium">{operationsCount}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-gray-500 dark:text-gray-400">Events:</span>
+                            <span className="font-medium">{eventsCount}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                {/* Connection Details - Show only if connection exists */}
+                {connection && (
+                    <div className="bg-gray-50 dark:bg-slate-700 p-4 rounded-md">
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Connection Details</h3>
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Connection ID:</span>
+                                <span className="font-medium">{connection.id.substring(0, 8)}...</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">User ID:</span>
+                                <span className="font-medium">{connection.userId?.substring(0, 8)}...</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Created:</span>
+                                <span className="font-medium">{formatDate(connection.createdAt)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Last Updated:</span>
+                                <span className="font-medium">{formatDate(connection.updatedAt)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Last Active:</span>
+                                <span className="font-medium">{formatDate(connection.lastActiveAt)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Status:</span>
+                                <span className="font-medium">{connection.disconnected ? 'Disconnected' : 'Connected'}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+            
+            {/* Features and capabilities */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-1">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Features</h3>
+                <div className="flex flex-wrap gap-2">
+                    {integration.hasData && (
+                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">Data</span>
+                    )}
+                    {integration.hasOperations && (
+                        <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded-full text-xs">Operations</span>
+                    )}
+                    {integration.hasDocumentation && (
+                        <span className="px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs">Documentation</span>
+                    )}
+                    {integration.hasEvents && (
+                        <span className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded-full text-xs">Events</span>
+                    )}
+                    {integration.hasGlobalWebhooks && (
+                        <span className="px-2 py-1 bg-pink-50 text-pink-700 rounded-full text-xs">Webhooks</span>
+                    )}
+                    {integration.hasUdm && (
+                        <span className="px-2 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs">UDM</span>
+                    )}
+                    {connection && (
+                        <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs">Connected</span>
+                    )}
+                </div>
             </div>
         </div>
     )
@@ -293,15 +606,15 @@ function ListEntities({ connectionId }) {
     )
 }
 
-function ObjectsList() {
+function ObjectsList({ integrationKey }) {
     const [searchTerm, setSearchTerm] = useState('');
     
     // Use TanStack Query to fetch search results
     const { data, isLoading, error } = useQuery({
-        queryKey: ['searchObjects', searchTerm],
-        queryFn: () => searchEntityObjects(searchTerm),
-        // Only run the query if we have a search term
-        enabled: searchTerm.length > 0,
+        queryKey: ['searchObjects', searchTerm, integrationKey],
+        queryFn: () => searchEntityObjects(searchTerm, integrationKey),
+        // Only run the query if we have a search term and selected integration
+        enabled: searchTerm.length > 0 && integrationKey.length > 0,
         // Debounce to avoid excessive API calls
         refetchOnWindowFocus: false,
         staleTime: 30000, // 30 seconds
@@ -354,17 +667,24 @@ function ObjectsList() {
     return (
         <div className="py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold mb-2">Objects</h2>
+            
+            {/* Search Input */}
             <div className="w-full max-w-md mb-4 relative">
                 <Input 
                     placeholder="Search deals..." 
                     className="pl-8"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    disabled={!integrationKey}
                 />
                 <div className="absolute left-2 top-2.5 text-gray-400">🔍</div>
             </div>
 
-            {isLoading && searchTerm && (
+            {!integrationKey && (
+                <p className="text-gray-500">Please select an integration first</p>
+            )}
+
+            {integrationKey && isLoading && searchTerm && (
                 <p className="text-gray-500">Loading results...</p>
             )}
             
@@ -372,11 +692,11 @@ function ObjectsList() {
                 <p className="text-red-500">Error: {error.message}</p>
             )}
             
-            {!isLoading && !error && searchTerm && records.length === 0 && (
+            {!isLoading && !error && integrationKey && searchTerm && records.length === 0 && (
                 <p className="text-gray-500">No records found</p>
             )}
             
-            {!searchTerm && (
+            {integrationKey && !searchTerm && (
                 <p className="text-gray-500">Type to search for objects</p>
             )}
             
