@@ -12,20 +12,10 @@ export function AuthPopup({ integration_name, onClose }) {
   const fetchAuthConfig = async () => {
     try {
       setLoading(true);
-      // const res = await fetch(`/integrations/${integration_name}/authorization_begin`);
-      // const res = await fetch(`https://run.mocky.io/v3/fabd110c-81d3-43e7-9ca6-5ced884642ee`);
-      // if (!res.ok) throw new Error('Failed to fetch');
-      // const data = await res.json();
-      const data = {
-        "auth_method": "oauth2+fields",
-        "auth_params": [{
-          "id": "api_key",
-          "type": "string",
-          "label": "API Key",
-          "required": true
-        }],
-        "base_connection_url": "https://api.integration.app/connection-popup?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4MzliZjgwNjEwMDFhYzNiMjVjZDQ3ZCIsImlzcyI6ImMwZDhjM2EyLTg3ZTUtNGY4MS04N2YxLWYyOTY2MGU3Y2ZmNiIsImV4cCI6MTc4MDM5MzgwNn0.mzX2pCfndYobXoq9Ytzuk8xsWw3xtosMsqRt7eY2QuU&requestId=2&integrationKey=salesforce"
-      }
+      const res = await fetch(`http://localhost:8000/auth/${integration_name}/begin`);
+
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
       setAuthConfig(data);
 
     } catch (err) {
@@ -45,11 +35,14 @@ export function AuthPopup({ integration_name, onClose }) {
     if (!authConfig) return;
 
     const newErrors = {};
-    authConfig.auth_params.forEach(({ id, label, required }) => {
-      if (required && !formData[id]?.trim()) {
-        newErrors[id] = `${label} is required`;
-      }
-    });
+    if (authConfig.auth_params) {
+      authConfig.auth_params.forEach(({ id, label, required }) => {
+        if (required && !formData[id]?.trim()) {
+          newErrors[id] = `${label} is required`;
+        }
+      });
+    }
+
 
     setFieldErrors(newErrors);
 
@@ -61,6 +54,7 @@ export function AuthPopup({ integration_name, onClose }) {
     // No errors, proceed with submission
     const { auth_method, base_connection_url } = authConfig;
     let url = base_connection_url;
+
     if (auth_method !== 'oauth2') {
       const url_constructor = new URL(base_connection_url);
       const connectionParameters = JSON.stringify(formData);
@@ -71,15 +65,30 @@ export function AuthPopup({ integration_name, onClose }) {
     window.open(
       url.toString(),
       'authWindow',
-      'width=500,height=600,noopener,noreferrer,scrollbars=yes,resizable=yes'
+      'width=500,height=600,scrollbars=yes,resizable=yes'
     );
+    console.log("url", url);
   };
 
 
 
   useEffect(() => {
     fetchAuthConfig();
-  }, [integration_name]);
+
+    const handleMessage = (event) => {
+      if (event.data.status === 'success') {
+        onClose?.();
+      } else {
+        setError('Authorization failed');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [integration_name, onClose]);
 
   if (loading) return <div className="text-gray-600 p-4">Loading authorization details...</div>;
   if (error) return <div className="text-red-600 p-4">{error}</div>;
