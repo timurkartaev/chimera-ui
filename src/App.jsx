@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query'
 import {useState, useEffect} from 'react';
 import {fetchOptions, fetchIntegrations, archiveConnection, fetchDataCollections, fetchEntityDetails, searchEntityObjects} from './utils';
+import { ConnectButton } from './components/ui/connect_button';
 
 // Import the Select components
 import {
@@ -22,24 +23,8 @@ import {Input} from "./components/ui/input";
 
 // Import the Checkbox component
 import {Checkbox} from "./components/ui/checkbox";
+import {Button} from "./components/ui/button";
 
-// Button component
-function Button({children, className = "", variant = "default", onClick}) {
-    const baseStyles = "px-4 py-2 rounded-md font-medium text-white transition-colors";
-    const variantStyles = {
-        default: "bg-blue-500 hover:bg-blue-600",
-        destructive: "bg-red-500 hover:bg-red-600",
-    };
-
-    return (
-        <button
-            className={`${baseStyles} ${variantStyles[variant]} ${className}`}
-            onClick={onClick}
-        >
-            {children}
-        </button>
-    );
-}
 
 // Simple component to display connectors
 function ConnectorsList() {
@@ -140,12 +125,7 @@ function ConnectorsList() {
                 </Button>
               </div>
             ) : (
-              <Button 
-                onClick={() => window.open(`https://chimera-vercel.vercel.app/auth/${integration.key}/begin/`, '_blank')}
-                className="text-sm px-3 py-1.5"
-              >
-                Connect
-              </Button>
+               <ConnectButton integration_name={integration.key}/>
             )}
           </div>
           
