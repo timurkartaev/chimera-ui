@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from './button';
+import * as utils from '../../utils'; // Adjust the import path as necessary
 
 export function AuthPopup({ integration_name, onClose }) {
   const [authConfig, setAuthConfig] = useState(null);
@@ -12,11 +13,8 @@ export function AuthPopup({ integration_name, onClose }) {
   const fetchAuthConfig = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:8000/auth/${integration_name}/begin`);
-
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
-      setAuthConfig(data);
+      const auth_config = await utils.fetchAuthConfig(integration_name);
+      setAuthConfig(auth_config);
 
     } catch (err) {
       setError('Failed to fetch authorization config.');
@@ -74,21 +72,7 @@ export function AuthPopup({ integration_name, onClose }) {
 
   useEffect(() => {
     fetchAuthConfig();
-
-    const handleMessage = (event) => {
-      if (event.data.status === 'success') {
-        onClose?.();
-      } else {
-        setError('Authorization failed');
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [integration_name, onClose]);
+  }, [integration_name]);
 
   if (loading) return <div className="text-gray-600 p-4">Loading authorization details...</div>;
   if (error) return <div className="text-red-600 p-4">{error}</div>;
