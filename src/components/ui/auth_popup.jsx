@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import { Button } from './button';
 import * as utils from '../../utils'; // Adjust the import path as necessary
 
+const AUTH_TYPE_TO_INPUT_TYPE = {
+  "boolean": "checkbox",
+  "string": "text",
+}
+
 export function AuthPopup({ integration_name, onClose }) {
   const [authConfig, setAuthConfig] = useState(null);
   const [formData, setFormData] = useState({});
@@ -14,6 +19,8 @@ export function AuthPopup({ integration_name, onClose }) {
     try {
       setLoading(true);
       const auth_config = await utils.fetchAuthConfig(integration_name);
+      const url_object = new URL(auth_config.base_connection_url);
+      auth_config["requestId"] = url_object.searchParams.get("requestId");
       setAuthConfig(auth_config);
 
     } catch (err) {
@@ -50,11 +57,21 @@ export function AuthPopup({ integration_name, onClose }) {
     }
 
     // No errors, proceed with submission
-    const { auth_method, base_connection_url } = authConfig;
+    const { auth_method, base_connection_url, auth_params } = authConfig;
     let url = base_connection_url;
 
     if (auth_method !== 'oauth2') {
       const url_constructor = new URL(base_connection_url);
+      for (const param of auth_params) {
+        const { id, type } = param;
+        let value = formData[id];
+
+        if (type === 'boolean') {
+          value = value ? true : false;
+        }
+        formData[id] = value; // Ensure formData is updated with the correct value
+      }
+
       const connectionParameters = JSON.stringify(formData);
       url_constructor.searchParams.append("connectionParameters", connectionParameters);
       // window.location.href = url.toString();
@@ -72,6 +89,19 @@ export function AuthPopup({ integration_name, onClose }) {
 
   useEffect(() => {
     fetchAuthConfig();
+    const listener = utils.listenForStatus((event) => {
+      const data = JSON.parse(event.data);
+      if (data.status === 'success' && data.requestId === authConfig?.requestId) {
+        onClose(); // Close the popup on success
+      } else if (data.status === 'error') {
+        setError('An error occurred during authorization.');
+      }
+
+    }, (error) => { });
+    return () => {
+      listener.close();
+    };
+
   }, [integration_name]);
 
   if (loading) return <div className="text-gray-600 p-4">Loading authorization details...</div>;
@@ -98,12 +128,35 @@ export function AuthPopup({ integration_name, onClose }) {
               <input
                 id={id}
                 name={id}
-                type={type || 'text'}
-                value={formData[id] || ''}
+                type={AUTH_TYPE_TO_INPUT_TYPE[type] || 'text'}
+                value={
+                  ['checkbox', 'radio'].includes(AUTH_TYPE_TO_INPUT_TYPE[type])
+                    ? undefined
+                    : formData[id] || ''
+                }
+                checked={
+                  AUTH_TYPE_TO_INPUT_TYPE[type] === 'checkbox'
+                    ? !!formData[id]
+                    : undefined
+                }
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 
-        ${fieldErrors[id] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
-                aria-invalid={fieldErrors[id] ? "true" : "false"}
+                className={`
+    ${['radio', 'checkbox'].includes(AUTH_TYPE_TO_INPUT_TYPE[type])
+                    ? `
+          form-${AUTH_TYPE_TO_INPUT_TYPE[type]}
+          text-blue-600
+          focus:ring-2
+          focus:ring-blue-500
+          ${fieldErrors[id] ? 'ring-red-500' : ''}
+        `
+                    : `
+          w-full px-3 py-2 border rounded-lg shadow-sm
+          focus:outline-none focus:ring-2
+          ${fieldErrors[id] ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}
+        `
+                  }
+  `}
+                aria-invalid={fieldErrors[id] ? 'true' : 'false'}
                 aria-describedby={fieldErrors[id] ? `${id}-error` : undefined}
               />
               {fieldErrors[id] && (
