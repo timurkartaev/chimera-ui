@@ -82,7 +82,7 @@ export function AuthForm({ authConfig, onClose }) {
 
     return (
         <div className="space-y-6">
-            {authConfig.auth_params.map(({ id, label, type, required, default: defaultValue}) => (
+            {authConfig.auth_params.map(({ id, label, type, required, default: defaultValue }) => (
                 <FormInput
                     key={id}
                     id={id}
@@ -104,7 +104,7 @@ export function AuthForm({ authConfig, onClose }) {
                 <Button onClick={onClose} className="text-sm px-3 py-1.5" variant="secondary">
                     Cancel
                 </Button>
-                ``            </div>
+            </div>
         </div>
     );
 }
