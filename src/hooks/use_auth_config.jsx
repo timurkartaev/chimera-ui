@@ -10,7 +10,7 @@ export function useAuthConfig(integration_name, onSuccess) {
     const fetchAuthConfig = async () => {
       try {
         const config = await utils.fetchAuthConfig(integration_name);
-        const url = new URL(config.base_connection_url);
+        const url = new URL(config.auth_url);
         config.requestId = url.searchParams.get('requestId');
         setAuthConfig(config);
       } catch (err) {

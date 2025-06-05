@@ -6,15 +6,19 @@ import { useEffect } from 'react';
 export function AuthModal({ integration_name, integration_logo, onClose }) {
     const { authConfig, loading, error } = useAuthConfig(integration_name, onClose);
     useEffect(() => {
-        function handleMessage(event) {
-            // Optionally check event.origin here for security
+        const handleMessage = (event) => {
+            // Optionally validate event.origin
+            const { status, error_message } = event.data;
 
-            if (event.data?.type === "authSuccess") {
-                console.log("Authentication succeeded with state:", event.data.state);
-                // Call your close modal handler or update state
-                onClose();
+            console.log("Auth response received:", status, error_message);
+
+            if (status === "success") {
+
+            } else {
+                alert("Authentication failed: " + error_message);
             }
-        }
+            onClose(refresh = true);
+        };
 
         window.addEventListener("message", handleMessage);
 
@@ -36,6 +40,6 @@ export function AuthModal({ integration_name, integration_logo, onClose }) {
 
         {loading && <div className="text-gray-600">Loading authorization details...</div>}
         {error && <div className="text-red-600">{error}</div>}
-        {authConfig && <AuthForm authConfig={authConfig} onClose={onClose}/>}
+        {authConfig && <AuthForm authConfig={authConfig} onClose={onClose} />}
     </Modal>
 }

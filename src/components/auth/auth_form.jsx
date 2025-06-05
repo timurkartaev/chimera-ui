@@ -31,8 +31,7 @@ export function AuthForm({ authConfig, onClose }) {
     }
 
     const handleSubmit = () => {
-        const { auth_method, base_connection_url, auth_params } = authConfig;
-
+        const { auth_method, auth_url, auth_params } = authConfig;
         // Validate required fields
         const newErrors = {};
         for (const { id, label, required } of auth_params) {
@@ -46,7 +45,7 @@ export function AuthForm({ authConfig, onClose }) {
         if (Object.keys(newErrors).length > 0) return;
 
         // Construct connection URL
-        const url = new URL(base_connection_url);
+        const url = new URL(auth_url);
 
         if (auth_method !== 'oauth2') {
             const connectionParameters = {};
@@ -66,7 +65,7 @@ export function AuthForm({ authConfig, onClose }) {
             }
         }
 
-        const { type, element, window_ } = openAuthWindowOrIframe(authConfig.auth_method, url.toString());
+        const { type, element, window_ } = openAuthWindowOrIframe(auth_method, url.toString());
 
         if (type === "popup") {
             console.log("Popup opened:", window_);
@@ -74,21 +73,9 @@ export function AuthForm({ authConfig, onClose }) {
                 alert("Popup blocked or failed to open. Please allow popups for this site.");
                 return;
             }
-            // add a listener that tracks when popup closes
-            window_.focus()
-            const interval = setInterval(() => {
-                if (window_.closed) {
-                    clearInterval(interval);
-                    console.log("Popup closed");
-                    onClose()
-                    // Optionally, you can handle post-auth logic here
-                }
-            }, 500);
-
 
         } else {
             console.log("Authentication started in iframe:", element);
-            onClose();
         }
     };
 
@@ -102,7 +89,7 @@ export function AuthForm({ authConfig, onClose }) {
                     label={label}
                     type={type}
                     required={required}
-                    value={formData[id]}
+                    value={formData[id] || defaultValue}
                     onChange={(fieldId, newValue) => {
                         setFormData((prev) => ({ ...prev, [fieldId]: newValue }));
                     }}
@@ -110,9 +97,14 @@ export function AuthForm({ authConfig, onClose }) {
                 />
             ))}
 
-            <Button onClick={handleSubmit} className="text-sm px-3 py-1.5">
-                {authConfig.auth_method?.startsWith('oauth2') ? 'Connect with OAuth' : 'Connect'}
-            </Button>
+            <div className="flex justify-between">
+                <Button onClick={handleSubmit} className="text-sm px-3 py-1.5">
+                    {authConfig.auth_method?.startsWith('oauth2') ? 'Connect with OAuth' : 'Connect'}
+                </Button>
+                <Button onClick={onClose} className="text-sm px-3 py-1.5" variant="secondary">
+                    Cancel
+                </Button>
+                ``            </div>
         </div>
     );
 }
