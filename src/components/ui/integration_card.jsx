@@ -7,7 +7,7 @@ import { AuthModal } from '../auth/auth_modal';
 export function IntegrationCard({ integration, handleDisconnect, disconnecting, handleModalClose }) {
     const { showModal, closeModal } = useModal();
 
-    const onClose = (refresh=false) => {
+    const onClose = (refresh = false) => {
         closeModal();
         if (refresh) {
             handleModalClose?.();

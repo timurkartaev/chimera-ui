@@ -1,5 +1,6 @@
 // Define a common base URL for all API calls
 const BASE_URL = 'https://chimera-vercel.vercel.app'
+// const BASE_URL = 'http://localhost:8000';
 
 const fetchOptions = async () => {
   const response = await fetch(`${BASE_URL}/list-connections`);

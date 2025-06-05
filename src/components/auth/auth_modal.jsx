@@ -7,17 +7,23 @@ export function AuthModal({ integration_name, integration_logo, onClose }) {
     const { authConfig, loading, error } = useAuthConfig(integration_name, onClose);
     useEffect(() => {
         const handleMessage = (event) => {
-            // Optionally validate event.origin
-            const { status, error_message } = event.data;
+            let status = "error"
+            let error_message = "Unknown error";
+            if (event.origin === "https://api.integration.app") {
+                status = event.data.connection.state === "READY" ? "success" : "error";
+            } else {
+                status = event.data.status;
+                error_message = event.data.error_message || "Unknown error";
+            }
 
             console.log("Auth response received:", status, error_message);
 
             if (status === "success") {
-
+                onClose(true);
             } else {
                 alert("Authentication failed: " + error_message);
             }
-            onClose(refresh = true);
+
         };
 
         window.addEventListener("message", handleMessage);
