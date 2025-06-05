@@ -82,7 +82,7 @@ export function AuthForm({ authConfig, onClose }) {
 
     return (
         <div className="space-y-6">
-            {authConfig.auth_params.map(({ id, label, type, required }) => (
+            {authConfig.auth_params.map(({ id, label, type, required, default: defaultValue}) => (
                 <FormInput
                     key={id}
                     id={id}
