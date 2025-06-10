@@ -24,4 +24,11 @@ dist-ssr
 *.sw?
 
 node_modules
+<<<<<<< Updated upstream
 .chimera-ui
+=======
+.chimera-ui
+.envrc
+.tool-versions
+.env
+>>>>>>> Stashed changes

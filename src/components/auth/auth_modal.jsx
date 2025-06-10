@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 export function AuthModal({ integration_name, integration_logo, onClose }) {
     const { authConfig, loading, error } = useAuthConfig(integration_name, onClose);
     useEffect(() => {
+<<<<<<< Updated upstream
         const handleMessage = (event) => {
             let status = "error"
             let error_message = "Unknown error";
@@ -14,6 +15,30 @@ export function AuthModal({ integration_name, integration_logo, onClose }) {
             } else {
                 status = event.data.status;
                 error_message = event.data.error_message || "Unknown error";
+=======
+        if (!authConfig || !isSubmitting) return;
+
+        const pollInterval = 2000;
+        let pollTimer = null;
+        const requestId = new URL(authConfig.auth_url).searchParams.get('requestId');
+
+        const checkAuthStatus = async () => {
+            try {
+                const data = await utils.fetchAuthStatus(integration_name, requestId);
+                
+                if (data.status === "success") {
+                    onClose(true);
+                    clearInterval(pollTimer);
+                } else if (data.status === "error") {
+                    setOverrideError("Authentication failed: " + data.error_message);
+                    clearInterval(pollTimer);
+                    setIsSubmitting(false);
+                }
+            } catch (error) {
+                setOverrideError("Failed to check authentication status: " + error.message);
+                clearInterval(pollTimer);
+                setIsSubmitting(false);
+>>>>>>> Stashed changes
             }
 
             console.log("Auth response received:", status, error_message);

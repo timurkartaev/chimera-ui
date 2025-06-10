@@ -1,6 +1,10 @@
 // Define a common base URL for all API calls
+<<<<<<< Updated upstream
 const BASE_URL = 'https://chimera-vercel.vercel.app'
 // const BASE_URL = 'http://localhost:8000';
+=======
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://chimera-vercel.vercel.app';
+>>>>>>> Stashed changes
 
 const fetchOptions = async () => {
   const response = await fetch(`${BASE_URL}/list-connections`);
