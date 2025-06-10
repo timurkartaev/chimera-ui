@@ -67,7 +67,7 @@ export function AuthModal({ integration_name, integration_logo, onClose }) {
     useEffect(() => {
         if (!authConfig || !isSubmitting) return;
 
-        const pollInterval = 1000;
+        const pollInterval = 2000;
         let pollTimer = null;
         const requestId = new URL(authConfig.auth_url).searchParams.get('requestId');
 
