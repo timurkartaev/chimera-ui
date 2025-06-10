@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Button } from '../ui/button';
 import { FormInput } from '../ui/form_input';
 
-
-export function AuthForm({ authConfig, onClose }) {
+export function AuthForm({ authConfig, onClose, onSubmit, isLoading }) {
     const [formData, setFormData] = useState({});
     const [fieldErrors, setFieldErrors] = useState({});
 
@@ -31,10 +30,9 @@ export function AuthForm({ authConfig, onClose }) {
     }
 
     const handleSubmit = () => {
-        const { auth_method, auth_url, auth_params } = authConfig;
         // Validate required fields
         const newErrors = {};
-        for (const { id, label, required } of auth_params) {
+        for (const { id, label, required } of authConfig.auth_params) {
             const value = formData[id];
             if (required && !value?.toString().trim()) {
                 newErrors[id] = `${label} is required`;
@@ -44,41 +42,8 @@ export function AuthForm({ authConfig, onClose }) {
         setFieldErrors(newErrors);
         if (Object.keys(newErrors).length > 0) return;
 
-        // Construct connection URL
-        const url = new URL(auth_url);
-
-        if (auth_method !== 'oauth2') {
-            const connectionParameters = {};
-
-            for (const { id } of auth_params) {
-                const value = formData[id];
-                if (value !== null && value !== undefined) {
-                    connectionParameters[id] = value;
-                }
-            }
-
-            if (Object.keys(connectionParameters).length > 0) {
-                url.searchParams.append(
-                    'connectionParameters',
-                    JSON.stringify(connectionParameters)
-                );
-            }
-        }
-
-        const { type, element, window_ } = openAuthWindowOrIframe(auth_method, url.toString());
-
-        if (type === "popup") {
-            console.log("Popup opened:", window_);
-            if (!window_ || window_.closed || typeof window_.closed === 'undefined') {
-                alert("Popup blocked or failed to open. Please allow popups for this site.");
-                return;
-            }
-
-        } else {
-            console.log("Authentication started in iframe:", element);
-        }
+        onSubmit(formData);
     };
-
 
     return (
         <div className="space-y-6">
@@ -98,10 +63,21 @@ export function AuthForm({ authConfig, onClose }) {
             ))}
 
             <div className="flex justify-between">
-                <Button onClick={handleSubmit} className="text-sm px-3 py-1.5">
-                    {authConfig.auth_method?.startsWith('oauth2') ? 'Connect with OAuth' : 'Connect'}
+                <Button 
+                    onClick={handleSubmit} 
+                    className="text-sm px-3 py-1.5"
+                    disabled={isLoading}
+                >
+                    {isLoading ? 'Connecting...' : 
+                        authConfig.auth_method?.startsWith('oauth2') ? 'Connect with OAuth' : 'Connect'
+                    }
                 </Button>
-                <Button onClick={onClose} className="text-sm px-3 py-1.5" variant="secondary">
+                <Button 
+                    onClick={onClose} 
+                    className="text-sm px-3 py-1.5" 
+                    variant="secondary"
+                    disabled={isLoading}
+                >
                     Cancel
                 </Button>
             </div>

@@ -1,10 +1,6 @@
 // Define a common base URL for all API calls
-<<<<<<< Updated upstream
-const BASE_URL = 'https://chimera-vercel.vercel.app'
-// const BASE_URL = 'http://localhost:8000';
-=======
 const BASE_URL = import.meta.env.VITE_API_URL || 'https://chimera-vercel.vercel.app';
->>>>>>> Stashed changes
+
 
 const fetchOptions = async () => {
   const response = await fetch(`${BASE_URL}/list-connections`);
@@ -102,11 +98,19 @@ const fetchAuthConfig = async (integrationName) => {
   return response.json();
 }
 
-  const listenForStatus = (onmessage, onerror) => {
-    const events = new EventSource(`${BASE_URL}/events?channel=status`);
-    events.onmessage = onmessage
-    events.onerror = onerror
-    return events;
-  }
+const listenForStatus = (onmessage, onerror) => {
+  const events = new EventSource(`${BASE_URL}/events?channel=status`);
+  events.onmessage = onmessage
+  events.onerror = onerror
+  return events;
+}
 
-export { fetchOptions, fetchIntegrations, archiveConnection, fetchDataCollections, fetchEntityDetails, searchEntityObjects, fetchAuthConfig, listenForStatus };
+const fetchAuthStatus = async (integrationName, requestId) => {
+  const response = await fetch(`${BASE_URL}/auth/${integrationName}/status/${requestId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch authentication status');
+  }
+  return response.json();
+}
+
+export { fetchOptions, fetchIntegrations, archiveConnection, fetchDataCollections, fetchEntityDetails, searchEntityObjects, fetchAuthConfig, listenForStatus, fetchAuthStatus };

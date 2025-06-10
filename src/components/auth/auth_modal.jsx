@@ -1,24 +1,73 @@
 import { Modal } from '../ui/modal';
 import { AuthForm } from './auth_form';
 import { useAuthConfig } from '../../hooks/use_auth_config';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import * as utils from '../../utils';
+
 
 export function AuthModal({ integration_name, integration_logo, onClose }) {
-    const { authConfig, loading, error } = useAuthConfig(integration_name, onClose);
+    const { authConfig, loading: configLoading, hookError } = useAuthConfig(integration_name, onClose);
+    const [overrideError, setOverrideError] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const effectiveError = overrideError ?? hookError;
+
+    const openAuthWindowOrIframe = (authType, url) => {
+        if (authType === 'credentials') {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = url;
+            document.body.appendChild(iframe);
+            return { type: 'iframe', element: iframe };
+        } else {
+            const popup = window.open(
+                url,
+                'authWindow',
+                'width=500,height=600,scrollbars=yes,resizable=yes'
+            );
+            return { type: 'popup', window_: popup };
+        }
+    };
+
+    const handleFormSubmit = (formData) => {
+        setIsSubmitting(true);
+        setOverrideError(null);
+
+        const { auth_method, auth_url } = authConfig;
+        const url = new URL(auth_url);
+
+        if (auth_method !== 'oauth2') {
+            const connectionParameters = {};
+            for (const { id } of authConfig.auth_params) {
+                const value = formData[id];
+                if (value !== null && value !== undefined) {
+                    connectionParameters[id] = value;
+                }
+            }
+
+            if (Object.keys(connectionParameters).length > 0) {
+                url.searchParams.append(
+                    'connectionParameters',
+                    JSON.stringify(connectionParameters)
+                );
+            }
+        }
+
+        const { type, element, window_ } = openAuthWindowOrIframe(auth_method, url.toString());
+
+        if (type === "popup") {
+            if (!window_ || window_.closed || typeof window_.closed === 'undefined') {
+                setOverrideError("Popup blocked or failed to open. Please allow popups for this site.");
+                setIsSubmitting(false);
+                return;
+            }
+        }
+    };
+
     useEffect(() => {
-<<<<<<< Updated upstream
-        const handleMessage = (event) => {
-            let status = "error"
-            let error_message = "Unknown error";
-            if (event.origin === "https://api.integration.app") {
-                status = event.data.connection.state === "READY" ? "success" : "error";
-            } else {
-                status = event.data.status;
-                error_message = event.data.error_message || "Unknown error";
-=======
         if (!authConfig || !isSubmitting) return;
 
-        const pollInterval = 2000;
+        const pollInterval = 1000;
         let pollTimer = null;
         const requestId = new URL(authConfig.auth_url).searchParams.get('requestId');
 
@@ -38,25 +87,19 @@ export function AuthModal({ integration_name, integration_logo, onClose }) {
                 setOverrideError("Failed to check authentication status: " + error.message);
                 clearInterval(pollTimer);
                 setIsSubmitting(false);
->>>>>>> Stashed changes
             }
-
-            console.log("Auth response received:", status, error_message);
-
-            if (status === "success") {
-                onClose(true);
-            } else {
-                alert("Authentication failed: " + error_message);
-            }
-
         };
 
-        window.addEventListener("message", handleMessage);
+        pollTimer = setInterval(checkAuthStatus, pollInterval);
+        checkAuthStatus();
 
         return () => {
-            window.removeEventListener("message", handleMessage);
+            if (pollTimer) {
+                clearInterval(pollTimer);
+            }
         };
-    }, [onClose]);
+    }, [integration_name, onClose, isSubmitting, authConfig]);
+
     return <Modal isOpen={true} onClose={onClose}>
         {integration_logo && (
             <img
@@ -69,8 +112,15 @@ export function AuthModal({ integration_name, integration_logo, onClose }) {
             Connect to <span className="capitalize">{integration_name}</span>
         </h2>
 
-        {loading && <div className="text-gray-600">Loading authorization details...</div>}
-        {error && <div className="text-red-600">{error}</div>}
-        {authConfig && <AuthForm authConfig={authConfig} onClose={onClose} />}
+        {configLoading && <div className="text-gray-600">Loading authorization details...</div>}
+        {effectiveError && <div className="text-red-600">{effectiveError}</div>}
+        {authConfig && (
+            <AuthForm 
+                authConfig={authConfig} 
+                onClose={onClose} 
+                onSubmit={handleFormSubmit}
+                isLoading={isSubmitting}
+            />
+        )}
     </Modal>
 }
