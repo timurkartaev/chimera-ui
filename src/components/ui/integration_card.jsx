@@ -53,7 +53,7 @@ export function IntegrationCard({ integration, handleDisconnect, disconnecting, 
                             {integration.connection.state}
                         </span>
                         <span className="text-xs text-gray-500 mt-1">
-                            Last active: {new Date(integration.connection.lastActiveAt).toLocaleDateString()}
+                            Last active: {integration.connection?.lastActiveAt ? new Date(integration.connection.lastActiveAt).toLocaleDateString() : 'N/A'}
                         </span>
                         <Button
                             variant="destructive"
