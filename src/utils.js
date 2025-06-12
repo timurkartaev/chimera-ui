@@ -113,4 +113,12 @@ const fetchAuthStatus = async (integrationName, requestId) => {
   return response.json();
 }
 
-export { fetchOptions, fetchIntegrations, archiveConnection, fetchDataCollections, fetchEntityDetails, searchEntityObjects, fetchAuthConfig, listenForStatus, fetchAuthStatus };
+const fetchIntegrationDetails = async (integrationName) => {
+  const response = await fetch(`${BASE_URL}/info/integrations/${integrationName}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch integration details');
+  }
+  return response.json();
+}
+
+export { fetchOptions, fetchIntegrations, archiveConnection, fetchDataCollections, fetchEntityDetails, searchEntityObjects, fetchAuthConfig, listenForStatus, fetchAuthStatus, fetchIntegrationDetails };
