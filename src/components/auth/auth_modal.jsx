@@ -6,7 +6,7 @@ import * as utils from '../../utils';
 
 
 export function AuthModal({ integration_name, integration_logo, onClose }) {
-    const { authConfig, loading: configLoading, hookError } = useAuthConfig(integration_name, onClose);
+    const { authConfig, loading: configLoading, hookError } = useAuthConfig(integration_name);
     const [overrideError, setOverrideError] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 

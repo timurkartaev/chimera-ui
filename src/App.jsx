@@ -26,7 +26,7 @@ export default function App() {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <div className="pl-8 pr-4 max-w-7xl w-full">
+            <div className="px-8 w-full">
                 {!showInfoPage ? (
                     /* Connectors List Page */
                     <div className="py-4">
