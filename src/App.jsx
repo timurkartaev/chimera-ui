@@ -2,21 +2,11 @@ import {
     QueryClient,
     QueryClientProvider,
     useQuery,
-    useMutation,
-    useQueryClient,
 } from '@tanstack/react-query'
-import { useState, useEffect } from 'react';
-import { fetchOptions, fetchIntegrations, archiveConnection, fetchDataCollections, fetchEntityDetails, searchEntityObjects } from './utils';
-import { IntegrationCard } from './components/ui/integration_card';
+import { useState, } from 'react';
+import { fetchOptions, fetchDataCollections, fetchEntityDetails, searchEntityObjects } from './utils';
+import { IntegrationList } from './components/ui/integration_list';
 
-// Import the Select components
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "./components/ui/select";
 
 // Import the Input component
 import { Input } from "./components/ui/input";
@@ -26,63 +16,6 @@ import { Checkbox } from "./components/ui/checkbox";
 import { Button } from "./components/ui/button";
 
 
-// Simple component to display connectors
-function ConnectorsList() {
-    const queryClient = useQueryClient();
-    const [disconnecting, setDisconnecting] = useState(null);
-
-    // Query to fetch integrations
-    const { data, isLoading, error } = useQuery({
-        queryKey: ['integrations'],
-        queryFn: fetchIntegrations
-    });
-
-    // Mutation to archive/disconnect a connection
-    const disconnectMutation = useMutation({
-        mutationFn: archiveConnection,
-        onMutate: (connectionId) => {
-            setDisconnecting(connectionId);
-        },
-        onSuccess: () => {
-            // Invalidate the query to refetch the data
-            queryClient.invalidateQueries({ queryKey: ['integrations'] });
-        },
-        onError: (error) => {
-            console.error("Failed to disconnect:", error);
-            alert("Failed to disconnect: " + error.message);
-        },
-        onSettled: () => {
-            setDisconnecting(null);
-        }
-    });
-
-    // Handle disconnect button click
-    const handleDisconnect = (connectionId) => {
-        if (confirm("Are you sure you want to disconnect this integration?")) {
-            disconnectMutation.mutate(connectionId);
-        }
-    };
-
-    const handleModalClose = () => {
-        // Just invalidate queries here or trigger other state changes
-        console.log("Modal closed, invalidating queries...");
-        queryClient.invalidateQueries(['integrations']);
-    };
-
-    if (isLoading) return <p>Loading connectors...</p>;
-    if (error) return <p>Error loading connectors: {error.message}</p>;
-
-    // Get integrations from the new response structure
-    const integrations = data?.response?.items || [];
-
-    return (
-        <>
-            {integrations.map(integration => (
-                <IntegrationCard key={integration.key} integration={integration} handleDisconnect={handleDisconnect} disconnecting={disconnecting} handleModalClose={handleModalClose} />
-            ))}
-        </>
-    );
-}
 
 const queryClient = new QueryClient() // check cache ttl
 
@@ -93,7 +26,7 @@ export default function App() {
 
     return (
         <QueryClientProvider client={queryClient}>
-            <div className="pl-8 pr-4 max-w-7xl w-full">
+            <div className="px-8 w-full">
                 {!showInfoPage ? (
                     /* Connectors List Page */
                     <div className="py-4">
@@ -101,7 +34,7 @@ export default function App() {
 
                         {/* List of connectors with status */}
                         <div className="grid gap-4 mb-6">
-                            <ConnectorsList />
+                            <IntegrationList />
                         </div>
 
                         {/* Simple button to show info page */}
@@ -241,10 +174,10 @@ function IntegrationDetail({ selectedIntegration }) {
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${connection?.state === 'READY'
-                                ? 'bg-green-100 text-green-800'
-                                : connection?.state === 'ERROR'
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-blue-100 text-blue-800'
+                            ? 'bg-green-100 text-green-800'
+                            : connection?.state === 'ERROR'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-blue-100 text-blue-800'
                             }`}>
                             {connection ? connection.state : 'Selected'}
                         </span>

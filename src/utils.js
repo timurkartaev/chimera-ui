@@ -113,4 +113,28 @@ const fetchAuthStatus = async (integrationName, requestId) => {
   return response.json();
 }
 
-export { fetchOptions, fetchIntegrations, archiveConnection, fetchDataCollections, fetchEntityDetails, searchEntityObjects, fetchAuthConfig, listenForStatus, fetchAuthStatus };
+const fetchIntegrationDetails = async (integrationName) => {
+  const response = await fetch(`${BASE_URL}/info/${integrationName}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch integration details');
+  }
+  return response.json();
+}
+
+const fetchIntegrationConnection = async (integrationName) => {
+  const response = await fetch(`${BASE_URL}/auth/${integrationName}/connection`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch integration connection');
+  }
+  return response.json();
+}
+
+const disconnectConnection = async (integrationName, connectionId) => {
+  const response = await fetch(`${BASE_URL}/auth/${integrationName}/connection/${connectionId}`, { method: "DELETE" });
+  if (!response.ok) {
+    throw new Error('Failed to disconnect connection');
+  }
+  return response.json();
+}
+
+export { fetchOptions, fetchIntegrations, archiveConnection, fetchDataCollections, fetchEntityDetails, searchEntityObjects, fetchAuthConfig, listenForStatus, fetchAuthStatus, fetchIntegrationDetails, fetchIntegrationConnection, disconnectConnection };

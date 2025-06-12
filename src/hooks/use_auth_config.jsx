@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as utils from '../utils';
 
-export function useAuthConfig(integration_name, onSuccess) {
+export function useAuthConfig(integration_name) {
   const [authConfig, setAuthConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

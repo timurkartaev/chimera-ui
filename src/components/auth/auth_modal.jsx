@@ -1,16 +1,13 @@
 import { Modal } from '../ui/modal';
 import { AuthForm } from './auth_form';
-import { useAuthConfig } from '../../hooks/use_auth_config';
 import { useEffect, useState } from 'react';
 import * as utils from '../../utils';
 
-
-export function AuthModal({ integration_name, integration_logo, onClose }) {
-    const { authConfig, loading: configLoading, hookError } = useAuthConfig(integration_name, onClose);
+export function AuthModal({ integration_name, integration_logo, onClose, authConfig }) {
     const [overrideError, setOverrideError] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const effectiveError = overrideError ?? hookError;
+    const effectiveError = overrideError
 
     const openAuthWindowOrIframe = (authType, url) => {
         if (authType === 'credentials') {
@@ -28,6 +25,7 @@ export function AuthModal({ integration_name, integration_logo, onClose }) {
             return { type: 'popup', window_: popup };
         }
     };
+
 
     const handleFormSubmit = (formData) => {
         setIsSubmitting(true);
@@ -74,7 +72,7 @@ export function AuthModal({ integration_name, integration_logo, onClose }) {
         const checkAuthStatus = async () => {
             try {
                 const data = await utils.fetchAuthStatus(integration_name, requestId);
-                
+
                 if (data.status === "success") {
                     onClose(true);
                     clearInterval(pollTimer);
@@ -100,7 +98,7 @@ export function AuthModal({ integration_name, integration_logo, onClose }) {
         };
     }, [integration_name, onClose, isSubmitting, authConfig]);
 
-    return <Modal isOpen={true} onClose={onClose}>
+    return <Modal isOpen={true} onClose={() => onClose(false)}>
         {integration_logo && (
             <img
                 src={integration_logo}
@@ -112,12 +110,12 @@ export function AuthModal({ integration_name, integration_logo, onClose }) {
             Connect to <span className="capitalize">{integration_name}</span>
         </h2>
 
-        {configLoading && <div className="text-gray-600">Loading authorization details...</div>}
+
         {effectiveError && <div className="text-red-600">{effectiveError}</div>}
         {authConfig && (
-            <AuthForm 
-                authConfig={authConfig} 
-                onClose={onClose} 
+            <AuthForm
+                authConfig={authConfig}
+                onClose={() => onClose(false)}
                 onSubmit={handleFormSubmit}
                 isLoading={isSubmitting}
             />
