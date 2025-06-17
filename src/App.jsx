@@ -4,7 +4,7 @@ import {
     useQuery,
 } from '@tanstack/react-query'
 import { useState, } from 'react';
-import { fetchOptions, fetchDataCollections, fetchEntityDetails, searchEntityObjects } from './utils';
+import { fetchOptions, fetchEntitySchema, searchEntityObjects, fetchEntities } from './utils';
 import { IntegrationList } from './components/ui/integration_list';
 
 
@@ -61,7 +61,7 @@ export default function App() {
                                 setSelectedIntegrationKey(integrationKey);
                             }}
                         />
-                        <ListEntities connectionId={selectedConnectionId} />
+                        <ListEntities integrationKey={selectedIntegrationKey} />
                         <ObjectsList integrationKey={selectedIntegrationKey} />
                         {/*<Actions/>*/}
                     </>
@@ -285,32 +285,32 @@ function IntegrationDetail({ selectedIntegration }) {
     )
 }
 
-function ListEntities({ connectionId }) {
+function ListEntities({ integrationKey }) {
     const [selectedEntity, setSelectedEntity] = useState('');
 
     // Use TanStack Query to fetch the entity options using the connectionId
     const { data, isLoading, error } = useQuery({
-        queryKey: ['entityOptions', connectionId],
-        queryFn: () => fetchDataCollections(connectionId),
+        queryKey: ['entityOptions', integrationKey],
+        queryFn: () => fetchEntities(integrationKey),
         // Only fetch when we have a connectionId
-        enabled: !!connectionId
+        enabled: !!integrationKey
     });
 
     // Fetch entity details when an entity is selected
     const { data: entityDetails, isLoading: isLoadingDetails, error: detailsError } = useQuery({
-        queryKey: ['entityDetails', connectionId, selectedEntity],
-        queryFn: () => fetchEntityDetails(connectionId, selectedEntity),
+        queryKey: ['entityDetails', integrationKey, selectedEntity],
+        queryFn: () => fetchEntitySchema(integrationKey, selectedEntity),
         // Only fetch when we have both connectionId and selectedEntity
-        enabled: !!(connectionId && selectedEntity)
+        enabled: !!(integrationKey && selectedEntity)
     });
 
-    console.log(entityDetails)
+    console.log("entityDetails", entityDetails)
 
     const handleChange = (e) => {
         setSelectedEntity(e.target.value);
     };
 
-    if (!connectionId) {
+    if (!integrationKey) {
         return (
             <div className="py-4 border-b border-gray-200">
                 <h2 className="text-lg font-semibold mb-2">Entities</h2>
@@ -431,7 +431,6 @@ function ObjectsList({ integrationKey }) {
 
     // Get records from query results or empty array
     const records = searchTerm.length > 0 ? (data?.response?.records || []) : [];
-    console.log(records)
 
     // Function to flatten objects to display in table
     const flattenField = (key, value) => {

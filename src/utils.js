@@ -137,4 +137,38 @@ const disconnectConnection = async (integrationName, connectionId) => {
   return response.json();
 }
 
-export { fetchOptions, fetchIntegrations, archiveConnection, fetchDataCollections, fetchEntityDetails, searchEntityObjects, fetchAuthConfig, listenForStatus, fetchAuthStatus, fetchIntegrationDetails, fetchIntegrationConnection, disconnectConnection };
+const fetchEntities = async (integrationKey) => {
+  const response = await fetch(`${BASE_URL}/entity/${integrationKey}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch list of entities');
+  }
+  return response.json();
+}
+
+const fetchEntitySchema = async (integrationKey, entityKey) => {
+  const response = await fetch(`${BASE_URL}/entity/${integrationKey}/${entityKey}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch entity schema');
+  }
+  const data = await response.json();
+  return {
+    entity_schema: data.schema
+  }
+}
+
+export {
+  fetchOptions,
+  fetchIntegrations,
+  archiveConnection,
+  fetchDataCollections,
+  fetchEntityDetails,
+  searchEntityObjects,
+  fetchAuthConfig,
+  listenForStatus,
+  fetchAuthStatus,
+  fetchIntegrationDetails,
+  fetchIntegrationConnection,
+  disconnectConnection,
+  fetchEntities,
+  fetchEntitySchema
+};

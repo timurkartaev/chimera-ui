@@ -38,7 +38,6 @@ export function IntegrationCard({ summary }) {
                             integration_logo={integration.logo}
                             authConfig={authConfig}
                             onClose={(refresh) => {
-                                console.log('refresh', refresh);
                                 closeModal();
                                 if (refresh) {
                                     queryClient.invalidateQueries(['integration-connection', summary.key]);
