@@ -6,8 +6,8 @@ import {
 import { useState, } from 'react';
 import { fetchOptions, fetchEntitySchema, searchEntityObjects, fetchEntities } from './utils';
 import { IntegrationList } from './components/ui/integration_list';
-
-
+import SchemaTable from "./components/ui/schema_table"; // Make sure this path is correct
+import { useEffect } from 'react';
 // Import the Input component
 import { Input } from "./components/ui/input";
 
@@ -285,26 +285,34 @@ function IntegrationDetail({ selectedIntegration }) {
     )
 }
 
-function ListEntities({ integrationKey }) {
-    const [selectedEntity, setSelectedEntity] = useState('');
 
-    // Use TanStack Query to fetch the entity options using the connectionId
+
+
+function ListEntities({ integrationKey }) {
+    const [selectedEntity, setSelectedEntity] = useState("");
+
     const { data, isLoading, error } = useQuery({
-        queryKey: ['entityOptions', integrationKey],
+        queryKey: ["entityOptions", integrationKey],
         queryFn: () => fetchEntities(integrationKey),
-        // Only fetch when we have a connectionId
         enabled: !!integrationKey
     });
 
-    // Fetch entity details when an entity is selected
-    const { data: entityDetails, isLoading: isLoadingDetails, error: detailsError } = useQuery({
-        queryKey: ['entityDetails', integrationKey, selectedEntity],
+    const {
+        data: entityDetails,
+        isLoading: isLoadingDetails,
+        error: detailsError
+    } = useQuery({
+        queryKey: ["entityDetails", integrationKey, selectedEntity],
         queryFn: () => fetchEntitySchema(integrationKey, selectedEntity),
-        // Only fetch when we have both connectionId and selectedEntity
         enabled: !!(integrationKey && selectedEntity)
     });
 
-    console.log("entityDetails", entityDetails)
+    // Add useEffect to log entityDetails when it changes
+    useEffect(() => {
+        if (entityDetails) {
+            console.log('Entity Details:', entityDetails);
+        }
+    }, [entityDetails]);
 
     const handleChange = (e) => {
         setSelectedEntity(e.target.value);
@@ -344,76 +352,26 @@ function ListEntities({ integrationKey }) {
                 </select>
             </div>
 
-            <div className="overflow-x-auto w-full" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                <table className="w-full border-collapse">
-                    <thead>
-                        <tr className="bg-gray-200">
-                            <th className="border border-gray-300 px-2 py-1 text-left text-sm w-1/6">id</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left text-sm w-1/5">label</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left text-sm w-1/6">custom</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left text-sm w-1/6">dataType</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left text-sm w-1/4">options</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {/* If no entity is selected, show message */}
-                        {!selectedEntity && (
-                            <tr>
-                                <td colSpan="5" className="border border-gray-300 px-2 py-4 text-center text-gray-500">
-                                    Please select an entity to view its fields
-                                </td>
-                            </tr>
-                        )}
+            {/* Display schema */}
+            {selectedEntity && (
+                <div>
+                    {isLoadingDetails && (
+                        <p className="text-gray-500">Loading entity details...</p>
+                    )}
+                    {detailsError && (
+                        <p className="text-red-500">Error: {detailsError.message}</p>
+                    )}
 
-                        {/* If entity is selected but details are loading */}
-                        {selectedEntity && isLoadingDetails && (
-                            <tr>
-                                <td colSpan="5" className="border border-gray-300 px-2 py-4 text-center text-gray-500">
-                                    Loading entity details...
-                                </td>
-                            </tr>
-                        )}
-
-                        {/* If there's an error loading details */}
-                        {selectedEntity && detailsError && (
-                            <tr>
-                                <td colSpan="5" className="border border-gray-300 px-2 py-4 text-center text-red-500">
-                                    Error: {detailsError.message}
-                                </td>
-                            </tr>
-                        )}
-
-                        {/* Display entity details if available */}
-                        {selectedEntity && entityDetails?.entity_schema && Array.isArray(entityDetails.entity_schema) && entityDetails.entity_schema.map(field => (
-                            <tr key={field.id}>
-                                <td className="border border-gray-300 px-2 py-1 text-sm w-1/6">{field.id}</td>
-                                <td className="border border-gray-300 px-2 py-1 text-sm w-1/5">{field.label}</td>
-                                <td className="border border-gray-300 px-2 py-1 text-sm w-1/6">{field.custom ? 'true' : 'false'}</td>
-                                <td className="border border-gray-300 px-2 py-1 text-sm w-1/6">{field.dataType}</td>
-                                <td className="border border-gray-300 px-2 py-1 text-sm w-1/4">{field.options}</td>
-                            </tr>
-                        ))}
-
-                        {/* Handle the new schema format with nested fieldsSchema */}
-                        {selectedEntity && entityDetails?.entity_schema?.fieldsSchema &&
-                            Object.entries(entityDetails.entity_schema.fieldsSchema.properties).map(([key, field]) => (
-                                <tr key={key}>
-                                    <td className="border border-gray-300 px-2 py-1 text-sm w-1/6">{key}</td>
-                                    <td className="border border-gray-300 px-2 py-1 text-sm w-1/5">{field.title || key}</td>
-                                    <td className="border border-gray-300 px-2 py-1 text-sm w-1/6">{key.startsWith('custom_') ? 'true' : 'false'}</td>
-                                    <td className="border border-gray-300 px-2 py-1 text-sm w-1/6">{field.type}</td>
-                                    <td className="border border-gray-300 px-2 py-1 text-sm w-1/4">
-                                        {field.referenceCollection ? `References: ${field.referenceCollection.key}` : ''}
-                                    </td>
-                                </tr>
-                            ))
-                        }
-                    </tbody>
-                </table>
-            </div>
+                    {entityDetails?.entity_schema && (
+                        <SchemaTable entity={entityDetails.entity_schema} />
+                    )}
+                </div>
+            )}
         </div>
-    )
+    );
 }
+
+
 
 function ObjectsList({ integrationKey }) {
     const [searchTerm, setSearchTerm] = useState('');
