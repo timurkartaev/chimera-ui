@@ -23,33 +23,28 @@ export default function App() {
                 {!showInfoPage ? (
                     /* Connectors List Page */
                     <div className="py-4">
-                        <h2 className="text-lg font-semibold mb-4">Available Connectors</h2>
-
-                        {/* List of connectors with status */}
-                        <div className="grid gap-4 mb-6">
-                            <IntegrationList onIntegrationsLoaded={setIntegrations} />
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-semibold">Available Connectors</h2>
+                            <Button
+                                onClick={() => setShowInfoPage(true)}
+                                className="text-sm px-3 py-1.5"
+                            >
+                                Continue to Info Page
+                            </Button>
                         </div>
 
-                        {/* Simple button to show info page */}
-                        <Button
-                            onClick={() => setShowInfoPage(true)}
-                            className="mt-4"
-                        >
-                            Continue to Info Page
-                        </Button>
+                        {/* List of connectors with status */}
+                        <div className="grid gap-4">
+                            <IntegrationList onIntegrationsLoaded={setIntegrations} />
+                        </div>
                     </div>
                 ) : (
                     /* Info Page with components */
                     <>
-                        <div className="flex justify-between items-center py-4 border-b border-gray-200">
-                            <h2 className="text-lg font-semibold">Info Page</h2>
-                            <Button onClick={() => setShowInfoPage(false)}>
-                                Back to Connectors
-                            </Button>
-                        </div>
 
                         <IntegrationWorkspace
                             integrations={integrations}
+                            onBack={() => setShowInfoPage(false)}
                         />
                         {/*<Actions/>*/}
                     </>

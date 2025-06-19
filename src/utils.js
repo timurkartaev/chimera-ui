@@ -186,5 +186,7 @@ export {
   fetchIntegrationConnection,
   disconnectConnection,
   fetchEntities,
-  fetchEntitySchema
+  fetchEntitySchema,
+  fetchEntityObjects,
+  fetchEntityObject
 };
