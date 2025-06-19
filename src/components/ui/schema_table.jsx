@@ -31,41 +31,46 @@ function PossibleValues({ values }) {
   const displayValues = isExpanded ? values : values.slice(0, 3);
 
   const getColorClass = (index) => {
-    // Base colors with different shades
+    // Light theme colors
     const baseColors = [
-      'blue', 'green', 'yellow', 'purple', 'pink', 'indigo',
-      'red', 'orange', 'teal', 'cyan', 'lime', 'emerald',
-      'violet', 'fuchsia', 'rose', 'amber', 'sky', 'slate'
+      'blue', 'green', 'indigo', 'purple'
     ];
-    
-    // Generate 50+ color combinations by varying shades
-    const shades = ['50', '100', '200'];
-    const textShades = ['600', '700', '800'];
-    
+
+    // Using lighter shades for better visibility
+    const shades = ['100', '200'];
+    const textShades = ['600', '700'];
+
     const colorIndex = index % baseColors.length;
     const shadeIndex = Math.floor(index / baseColors.length) % shades.length;
-    
-    const bgColor = `bg-${baseColors[colorIndex]}-${shades[shadeIndex]}`;
-    const textColor = `text-${baseColors[colorIndex]}-${textShades[shadeIndex]}`;
-    
-    return `${bgColor} ${textColor}`;
+    const baseColor = baseColors[colorIndex];
+    const shade = shades[shadeIndex];
+    const textShade = textShades[shadeIndex];
+
+    return {
+      bg: `bg-${baseColor}-${shade}`,
+      text: `text-${baseColor}-${textShade}`,
+      border: `border-${baseColor}-${shade}`
+    };
   };
 
   return (
     <div className="text-xs">
       <div className="flex flex-wrap gap-1">
-        {displayValues.map((value, index) => (
-          <span 
-            key={index}
-            className={`px-1.5 py-0.5 rounded ${getColorClass(index)}`}
-          >
-            {formatValue(value)}
-          </span>
-        ))}
+        {displayValues.map((value, index) => {
+          const colorClass = getColorClass(index);
+          return (
+            <span
+              key={index}
+              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colorClass.bg} ${colorClass.text}`}
+            >
+              {formatValue(value)}
+            </span>
+          );
+        })}
         {values.length > 3 && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-blue-500 hover:text-blue-600"
+            className="text-blue-600 hover:text-blue-700"
           >
             {isExpanded ? 'Show less' : `+${values.length - 3} more`}
           </button>
@@ -75,13 +80,13 @@ function PossibleValues({ values }) {
   );
 }
 
-function SchemaTableRow({ 
-  fieldId, 
-  field, 
-  level, 
-  requiredFields, 
-  updatableFields, 
-  parentPath = '' 
+function SchemaTableRow({
+  fieldId,
+  field,
+  level,
+  requiredFields,
+  updatableFields,
+  parentPath = ''
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const type = renderFieldType(field);
@@ -91,13 +96,13 @@ function SchemaTableRow({
   const fullPath = parentPath ? `${parentPath}.${fieldId}` : fieldId;
   const hasChildren = (isNested && field.properties) || (isArrayOfObjects && field.items?.properties);
 
-  // Calculate background color based on nesting level
-  const bgColor = level % 2 === 0 ? 'bg-blue-50/30' : 'bg-orange-50/30';
+  // Light background colors
+  const bgColor = level % 2 === 0 ? 'bg-white' : 'bg-gray-50';
 
   return (
     <>
-      <tr className={`border-b relative hover:bg-gray-100/50 transition-colors ${bgColor}`}>
-        <td className="p-2 font-mono text-xs">
+      <tr className={`border-b border-gray-200 relative hover:bg-gray-100 transition-colors ${bgColor}`}>
+        <td className="p-2 font-mono text-xs text-gray-900">
           <div className="flex items-center gap-1" style={{ paddingLeft: `${level * 1.5}rem` }}>
             {hasChildren && (
               <button
@@ -105,7 +110,7 @@ function SchemaTableRow({
                 className="w-4 h-4 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
                 style={{ transform: isExpanded ? 'rotate(90deg)' : 'none' }}
               >
-                ›
+                ▶
               </button>
             )}
             {!hasChildren && <div className="w-4" />}
@@ -115,12 +120,12 @@ function SchemaTableRow({
             <span>{fieldId}</span>
           </div>
         </td>
-        <td className="p-2">{label}</td>
+        <td className="p-2 text-gray-900">{label}</td>
         <td className="p-2">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 text-gray-900">
             <span>{type}</span>
             {hasChildren && (
-              <span className="text-gray-400 text-xs">({isExpanded ? 'expanded' : 'collapsed'})</span>
+              <span className="text-gray-500 text-xs">({isExpanded ? 'expanded' : 'collapsed'})</span>
             )}
           </div>
         </td>
@@ -141,30 +146,34 @@ function SchemaTableRow({
           <PossibleValues values={field.referenceRecords} />
         </td>
       </tr>
-      {isExpanded && isNested && field.properties && 
-        Object.entries(field.properties).map(([childId, childField]) => (
-          <SchemaTableRow
-            key={`${fullPath}.${childId}`}
-            fieldId={childId}
-            field={childField}
-            level={level + 1}
-            requiredFields={requiredFields}
-            updatableFields={updatableFields}
-            parentPath={fullPath}
-          />
-        ))}
-      {isExpanded && isArrayOfObjects && field.items?.properties && 
-        Object.entries(field.items.properties).map(([childId, childField]) => (
-          <SchemaTableRow
-            key={`${fullPath}.${childId}`}
-            fieldId={childId}
-            field={childField}
-            level={level + 1}
-            requiredFields={requiredFields}
-            updatableFields={updatableFields}
-            parentPath={fullPath}
-          />
-        ))}
+      {isExpanded && hasChildren && (
+        <>
+          {isNested && field.properties &&
+            Object.entries(field.properties).map(([childId, childField]) => (
+              <SchemaTableRow
+                key={`${fullPath}.${childId}`}
+                fieldId={childId}
+                field={childField}
+                level={level + 1}
+                requiredFields={requiredFields}
+                updatableFields={updatableFields}
+                parentPath={fullPath}
+              />
+            ))}
+          {isArrayOfObjects && field.items?.properties &&
+            Object.entries(field.items.properties).map(([childId, childField]) => (
+              <SchemaTableRow
+                key={`${fullPath}.${childId}`}
+                fieldId={childId}
+                field={childField}
+                level={level + 1}
+                requiredFields={requiredFields}
+                updatableFields={updatableFields}
+                parentPath={fullPath}
+              />
+            ))}
+        </>
+      )}
     </>
   );
 }
@@ -176,35 +185,32 @@ function SchemaTable({ entity }) {
   const updatableFields = new Set(update?.fields || []);
 
   return (
-    <div className="p-4 border rounded bg-white text-sm">
-      <h2 className="text-lg font-semibold mb-4">{entity.name} Schema</h2>
-      <div className="relative overflow-auto max-h-[600px]">
-        <table className="w-full text-left border">
-          <thead className="bg-gray-100 border-b sticky top-0 z-10">
-            <tr>
-              <th className="p-2 bg-gray-100">Field ID</th>
-              <th className="p-2 bg-gray-100">Label</th>
-              <th className="p-2 bg-gray-100">Type</th>
-              <th className="p-2 bg-gray-100">Updatable</th>
-              <th className="p-2 bg-gray-100">Readonly</th>
-              <th className="p-2 bg-gray-100">Reference</th>
-              <th className="p-2 bg-gray-100">Possible Values</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(properties).map(([fieldId, field]) => (
-              <SchemaTableRow
-                key={fieldId}
-                fieldId={fieldId}
-                field={field}
-                level={0}
-                requiredFields={requiredFields}
-                updatableFields={updatableFields}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm relative overflow-auto max-h-[600px]">
+      <table className="w-full text-left">
+        <thead className="sticky top-0 z-20">
+          <tr className="bg-white shadow-sm">
+            <th className="p-2 text-sm font-medium text-gray-700 bg-white border-b border-gray-200">Field ID</th>
+            <th className="p-2 text-sm font-medium text-gray-700 bg-white border-b border-gray-200">Label</th>
+            <th className="p-2 text-sm font-medium text-gray-700 bg-white border-b border-gray-200">Type</th>
+            <th className="p-2 text-sm font-medium text-gray-700 bg-white border-b border-gray-200">Updatable</th>
+            <th className="p-2 text-sm font-medium text-gray-700 bg-white border-b border-gray-200">Readonly</th>
+            <th className="p-2 text-sm font-medium text-gray-700 bg-white border-b border-gray-200">Reference</th>
+            <th className="p-2 text-sm font-medium text-gray-700 bg-white border-b border-gray-200">Possible Values</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(properties).map(([fieldId, field]) => (
+            <SchemaTableRow
+              key={fieldId}
+              fieldId={fieldId}
+              field={field}
+              level={0}
+              requiredFields={requiredFields}
+              updatableFields={updatableFields}
+            />
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
