@@ -156,6 +156,22 @@ const fetchEntitySchema = async (integrationKey, entityKey) => {
   }
 }
 
+const fetchEntityObjects = async (integrationKey, entityKey) => {
+  const response = await fetch(`${BASE_URL}/object/${integrationKey}/${entityKey}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch entity objects');
+  }
+  return response.json();
+}
+
+const fetchEntityObject = async (integrationKey, entityKey, objectId) => {
+  const response = await fetch(`${BASE_URL}/object/${integrationKey}/${entityKey}/${objectId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch entity object');
+  }
+  return response.json();
+}
+
 export {
   fetchOptions,
   fetchIntegrations,

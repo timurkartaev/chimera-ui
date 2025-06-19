@@ -15,7 +15,7 @@ function SkeletonList({ count = 6 }) {
   );
 }
 
-export function IntegrationList() {
+export function IntegrationList({ onIntegrationsLoaded }) {
   const queryClient = useQueryClient();
 
   const {
@@ -31,6 +31,7 @@ export function IntegrationList() {
 
   useEffect(() => {
     if (isSuccess && integrations) {
+      onIntegrationsLoaded(integrations);
       integrations.forEach((integration) => {
         queryClient.setQueryData(['integration-details', integration.key], { integration: integration });
       });
