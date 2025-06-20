@@ -4,6 +4,7 @@ import { fetchIntegrationConnection, disconnectConnection } from '../../utils';
 import { AuthModal } from '../auth/auth_modal';
 import { ToggleButton } from './toggle_button';
 import { CardLayout } from './card_layout';
+import { Badge } from './badge';
 import { fetchAuthConfig } from '../../utils';
 
 export function IntegrationCard({ summary }) {
@@ -62,6 +63,17 @@ export function IntegrationCard({ summary }) {
 
     const connected = Boolean(connection && !connection.disconnected);
 
+    const getCapabilityColor = (capability) => {
+        const capabilityColors = {
+            'info': 'blue',
+            'authorize': 'green',
+            'entity': 'purple',
+            'object': 'orange'
+
+        };
+        return capabilityColors[capability.toLowerCase()] || 'gray';
+    };
+
     return (
         <CardLayout
             logo={
@@ -92,6 +104,16 @@ export function IntegrationCard({ summary }) {
                 ) : (
                     <ToggleButton connected={connected} onToggle={handleToggle} />
                 )
+            }
+            capabilitySection={
+                <div>
+                    <div className="text-sm font-medium text-gray-700 mb-2"><strong>Capabilities:</strong> {integration.capabilities.map((capability, index) => (
+                            <Badge key={index} color={getCapabilityColor(capability)}>
+                                {capability}
+                            </Badge>
+                        ))}
+                    </div>
+                </div>
             }
         />
     );

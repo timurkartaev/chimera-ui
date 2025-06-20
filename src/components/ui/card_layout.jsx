@@ -1,4 +1,4 @@
-export function CardLayout({ logo, name, metaLeft, metaRight, footerLeft, footerRight }) {
+export function CardLayout({ logo, name, metaLeft, metaRight, footerLeft, footerRight, capabilitySection }) {
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
             <div className="p-4 flex flex-col items-center">
@@ -13,7 +13,11 @@ export function CardLayout({ logo, name, metaLeft, metaRight, footerLeft, footer
                 <div>{metaRight}</div>
             </div>
 
-            <div className="mt-auto px-4 py-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
+            <div className="mt-auto px-4 py-2">
+                {capabilitySection}
+            </div>
+
+            <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
                 <div className="text-sm text-gray-600">{footerLeft}</div>
                 <div className="ml-4">{footerRight}</div>
             </div>

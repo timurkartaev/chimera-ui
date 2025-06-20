@@ -11,6 +11,7 @@ export function SkeletonCard() {
       metaRight={<div className="h-3 bg-gray-200 rounded w-2/4" />}
       footerLeft={<div className="h-4 bg-gray-200 rounded w-3/5" />}
       footerRight={<div className="h-6 w-14 bg-gray-200 rounded-full" />}
+      capabilitySection={<div className="h-4 bg-gray-200 rounded w-1/3 mx-auto" />}
     />
   );
 }

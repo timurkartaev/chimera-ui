@@ -7,6 +7,7 @@ export function Badge({ children, color = 'blue' }) {
       pink: 'bg-pink-50 text-pink-700',
       red: 'bg-red-50 text-red-700',
       yellow: 'bg-yellow-50 text-yellow-700',
+      gray: 'bg-gray-50 text-gray-700',
     };
   
     return (
