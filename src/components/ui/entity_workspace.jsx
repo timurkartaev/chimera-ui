@@ -16,7 +16,6 @@ function flattenField(key, value) {
     if (Array.isArray(value)) {
         return { key, value: value, type: 'array' };
     }
-    console.log(key, value);
     return { key, value: value, type: typeof value };
 }
 
@@ -33,11 +32,11 @@ function getFlattenedFields(record) {
 }
 
 
-export function IntegrationWorkspace({integrations, selectedIntegration, onBack}) {
+export function IntegrationWorkspace({ integrations, selectedIntegration, onBack }) {
     const [integrationKey, setSelectedIntegrationKey] = useState(selectedIntegration?.key || '');
     const [selectedEntity, setSelectedEntity] = useState('');
     const [currentIntegration, setCurrentIntegration] = useState(selectedIntegration || null);
-    
+
     // Update current integration when selectedIntegration changes
     useEffect(() => {
         if (selectedIntegration) {
@@ -45,7 +44,7 @@ export function IntegrationWorkspace({integrations, selectedIntegration, onBack}
             setCurrentIntegration(selectedIntegration);
         }
     }, [selectedIntegration]);
-    
+
     const { data: entitiesData, isLoading: isLoadingEntities } = useQuery({
         queryKey: ["entityOptions", integrationKey],
         queryFn: () => fetchEntities(integrationKey),
@@ -96,7 +95,7 @@ export function IntegrationWorkspace({integrations, selectedIntegration, onBack}
                                 {integrations?.map(option => (
                                     <option key={option.key} value={option.key}>
                                         {option.name}
-                                    </option>   
+                                    </option>
                                 ))}
                             </select>
                         </div>
@@ -114,8 +113,8 @@ export function IntegrationWorkspace({integrations, selectedIntegration, onBack}
                                 disabled={!integrationKey || isLoadingEntities}
                             >
                                 <option value="">
-                                    {isLoadingEntities 
-                                        ? "Loading entities..." 
+                                    {isLoadingEntities
+                                        ? "Loading entities..."
                                         : "-- Select Entity --"
                                     }
                                 </option>
@@ -179,7 +178,7 @@ export function IntegrationWorkspace({integrations, selectedIntegration, onBack}
 
 function EntitySchemaPanel({ integrationKey, selectedEntity }) {
     const [isSchemaCollapsed, setIsSchemaCollapsed] = useState(true);
-    
+
     const {
         data: entityDetails,
         isLoading: isLoadingDetails,
@@ -248,15 +247,19 @@ function ObjectsPanel({ integrationKey, entityKey }) {
         refetchOnWindowFocus: false,
         staleTime: 30000,
     });
-    
+
     const records = data?.objects || [];
-    
+
     const { data: objectDetails, isLoading: isLoadingDetails, error: detailsError } = useQuery({
         queryKey: ['objectDetails', integrationKey, entityKey, selectedObjectKey],
         queryFn: () => fetchEntityObject(integrationKey, entityKey, selectedObjectKey),
         enabled: !!integrationKey && !!entityKey && !!selectedObjectKey,
         select: (data) => data.object,
     });
+
+    useEffect(() => {
+        console.log("objectDetails:", objectDetails);
+    }, [objectDetails]);
 
     // Early return for no entity selected
     if (!entityKey) {
@@ -345,7 +348,7 @@ function ObjectsPanel({ integrationKey, entityKey }) {
 // Extracted component for better organization
 function ObjectDetailsTable({ objectDetails }) {
     const flattenedFields = getFlattenedFields(objectDetails);
-    
+
     const renderValue = (value, type) => {
         // Handle null/undefined values
         if (type === 'null') {
@@ -357,15 +360,23 @@ function ObjectDetailsTable({ objectDetails }) {
             );
         }
 
+        // Handle empty strings
+        if (type === 'string' && value === '') {
+            return (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-1.5"></span>
+                    Empty
+                </span>
+            );
+        }
+
         // Handle boolean values
         if (type === 'boolean') {
             return (
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                        value ? 'bg-green-500' : 'bg-red-500'
-                    }`}></span>
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${value ? 'bg-green-500' : 'bg-red-500'
+                        }`}></span>
                     {value ? 'True' : 'False'}
                 </span>
             );
@@ -374,10 +385,10 @@ function ObjectDetailsTable({ objectDetails }) {
         // Handle numbers with formatting
         if (type === 'number') {
             const isInteger = Number.isInteger(value);
-            const formattedValue = isInteger 
-                ? value.toLocaleString() 
+            const formattedValue = isInteger
+                ? value.toLocaleString()
                 : value.toFixed(2);
-            
+
             return (
                 <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-mono bg-blue-50 text-blue-700 border border-blue-200">
                     {formattedValue}
@@ -406,9 +417,9 @@ function ObjectDetailsTable({ objectDetails }) {
         // Handle URLs
         if (type === 'string' && (value.startsWith('http://') || value.startsWith('https://'))) {
             return (
-                <a 
-                    href={value} 
-                    target="_blank" 
+                <a
+                    href={value}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:text-blue-800 underline break-all"
                 >
@@ -420,7 +431,7 @@ function ObjectDetailsTable({ objectDetails }) {
         // Handle email addresses
         if (type === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
             return (
-                <a 
+                <a
                     href={`mailto:${value}`}
                     className="text-blue-600 hover:text-blue-800 underline"
                 >
@@ -436,7 +447,7 @@ function ObjectDetailsTable({ objectDetails }) {
                     <div className="text-sm text-gray-900 mb-2">
                         {value.substring(0, 100)}...
                     </div>
-                    <button 
+                    <button
                         onClick={() => {
                             const fullText = document.createElement('textarea');
                             fullText.value = value;
@@ -460,7 +471,7 @@ function ObjectDetailsTable({ objectDetails }) {
                     <pre className="text-sm bg-gray-50 p-3 rounded border overflow-auto max-h-64">
                         {JSON.stringify(value, null, 2)}
                     </pre>
-                    <button 
+                    <button
                         onClick={() => {
                             const jsonText = document.createElement('textarea');
                             jsonText.value = JSON.stringify(value, null, 2);
@@ -476,7 +487,7 @@ function ObjectDetailsTable({ objectDetails }) {
                 </div>
             );
         }
-        
+
         // Handle arrays with enhanced display
         if (type === 'array' && Array.isArray(value)) {
             return (
@@ -489,7 +500,7 @@ function ObjectDetailsTable({ objectDetails }) {
                     <pre className="text-sm bg-gray-50 p-3 rounded border overflow-auto max-h-64">
                         {JSON.stringify(value, null, 2)}
                     </pre>
-                    <button 
+                    <button
                         onClick={() => {
                             const jsonText = document.createElement('textarea');
                             jsonText.value = JSON.stringify(value, null, 2);
@@ -513,7 +524,7 @@ function ObjectDetailsTable({ objectDetails }) {
             </span>
         );
     };
-    
+
     return (
         <div className="bg-white shadow-sm border border-gray-200 rounded-lg">
             <div className="px-6 py-4 border-b border-gray-200">
